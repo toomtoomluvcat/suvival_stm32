@@ -1,10 +1,10 @@
 /*******************************************************************************
- * File Name    : adc.h
- * Description  : Header สำหรับโมดูลอ่านค่า potentiometer ผ่าน ADC1 (polling)
+ * File Name    : led_pwm.h
+ * Description  : Header สำหรับโมดูลควบคุมความสว่าง LED ทั้ง 4 ดวงด้วย PWM
  * Date         : 2026-08-15
  ******************************************************************************/
-#ifndef ADC_H
-#define ADC_H
+#ifndef LED_PWM_H
+#define LED_PWM_H
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
@@ -12,12 +12,11 @@
 /* Exported typedef/enum/struct/union -----------------------------------------*/
 
 /* Exported define/macro/constants --------------------------------------------*/
-#define ADC_MAX_VALUE   (4095u)   /* ค่าสูงสุดของ ADC 12 บิต (0-4095) */
 
 /* Exported variables -----------------------------------------------------------*/
 
 /* Exported function prototypes ------------------------------------------------*/
-void adc_init(void);
-uint16_t adc_read(void);
+void led_pwm_init(void);
+void led_pwm_update(uint16_t adc_value);
 
-#endif /* ADC_H */
+#endif /* LED_PWM_H */

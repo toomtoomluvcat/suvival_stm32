@@ -1,10 +1,10 @@
 /*******************************************************************************
- * File Name    : adc.h
- * Description  : Header สำหรับโมดูลอ่านค่า potentiometer ผ่าน ADC1 (polling)
+ * File Name    : sensor.h
+ * Description  : Header สำหรับโมดูลอ่านค่าอุณหภูมิและความสว่างผ่าน ADC1
  * Date         : 2026-08-15
  ******************************************************************************/
-#ifndef ADC_H
-#define ADC_H
+#ifndef SENSOR_H
+#define SENSOR_H
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
@@ -12,12 +12,12 @@
 /* Exported typedef/enum/struct/union -----------------------------------------*/
 
 /* Exported define/macro/constants --------------------------------------------*/
-#define ADC_MAX_VALUE   (4095u)   /* ค่าสูงสุดของ ADC 12 บิต (0-4095) */
 
 /* Exported variables -----------------------------------------------------------*/
 
 /* Exported function prototypes ------------------------------------------------*/
-void adc_init(void);
-uint16_t adc_read(void);
+void sensor_init(void);
+uint32_t sensor_read_temperature_millidegc(void);
+uint32_t sensor_read_light_lux(void);
 
-#endif /* ADC_H */
+#endif /* SENSOR_H */

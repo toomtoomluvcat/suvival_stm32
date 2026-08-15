@@ -1,23 +1,22 @@
 /*******************************************************************************
- * File Name    : adc.h
- * Description  : Header สำหรับโมดูลอ่านค่า potentiometer ผ่าน ADC1 (polling)
+ * File Name    : led_control.h
+ * Description  : Header สำหรับโมดูลควบคุม LED สีน้ำเงิน/แดง/เหลือง (เปิด-ปิดพร้อมกัน)
  * Date         : 2026-08-15
  ******************************************************************************/
-#ifndef ADC_H
-#define ADC_H
+#ifndef LED_CONTROL_H
+#define LED_CONTROL_H
 
 /* Includes ------------------------------------------------------------------*/
-#include <stdint.h>
 
 /* Exported typedef/enum/struct/union -----------------------------------------*/
 
 /* Exported define/macro/constants --------------------------------------------*/
-#define ADC_MAX_VALUE   (4095u)   /* ค่าสูงสุดของ ADC 12 บิต (0-4095) */
 
 /* Exported variables -----------------------------------------------------------*/
 
 /* Exported function prototypes ------------------------------------------------*/
-void adc_init(void);
-uint16_t adc_read(void);
+void led_control_init(void);
+void led_all_on(void);
+void led_all_off(void);
 
-#endif /* ADC_H */
+#endif /* LED_CONTROL_H */

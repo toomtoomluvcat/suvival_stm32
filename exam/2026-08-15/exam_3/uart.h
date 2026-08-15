@@ -1,10 +1,10 @@
 /*******************************************************************************
- * File Name    : adc.h
- * Description  : Header สำหรับโมดูลอ่านค่า potentiometer ผ่าน ADC1 (polling)
+ * File Name    : uart.h
+ * Description  : Header สำหรับโมดูลรับ-ส่งข้อมูลผ่าน USART2 (PA2=TX, PA3=RX)
  * Date         : 2026-08-15
  ******************************************************************************/
-#ifndef ADC_H
-#define ADC_H
+#ifndef UART_H
+#define UART_H
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
@@ -12,12 +12,14 @@
 /* Exported typedef/enum/struct/union -----------------------------------------*/
 
 /* Exported define/macro/constants --------------------------------------------*/
-#define ADC_MAX_VALUE   (4095u)   /* ค่าสูงสุดของ ADC 12 บิต (0-4095) */
 
 /* Exported variables -----------------------------------------------------------*/
 
 /* Exported function prototypes ------------------------------------------------*/
-void adc_init(void);
-uint16_t adc_read(void);
+void uart_init(void);
+void uart_send_char(uint8_t data);
+void uart_send_string(const char * str);
+void uart_send_number(uint32_t number);
+uint8_t uart_receive_char(void);
 
-#endif /* ADC_H */
+#endif /* UART_H */

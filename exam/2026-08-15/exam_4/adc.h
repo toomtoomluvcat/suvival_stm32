@@ -1,6 +1,7 @@
 /*******************************************************************************
  * File Name    : adc.h
- * Description  : Header สำหรับโมดูลอ่านค่า potentiometer ผ่าน ADC1 (polling)
+ * Description  : Header สำหรับโมดูลอ่านค่า potentiometer ผ่าน ADC1
+ *                แบบ continuous conversion + EOC interrupt
  * Date         : 2026-08-15
  ******************************************************************************/
 #ifndef ADC_H
@@ -18,6 +19,7 @@
 
 /* Exported function prototypes ------------------------------------------------*/
 void adc_init(void);
-uint16_t adc_read(void);
+uint8_t adc_new_data_available(void);
+uint16_t adc_get_latest_value(void);
 
 #endif /* ADC_H */
