@@ -4,109 +4,110 @@
  *                ติดทีละดวงตามค่า potentiometer แบบ "บาร์กราฟ"
  *                ค่า ADC น้อย (หมุนสุดตามเข็มนาฬิกาตามโจทย์) = ดับหมด
  *                ค่า ADC มาก (หมุนทวนเข็มนาฬิกา) = ติดมากขึ้นทีละดวง
+ *                เขียนแต่ละดวงแยกเป็น if-else ตรง ๆ ไม่ใช้ตาราง/ลูป
+ *                เพื่อให้อ่านแล้วรู้ทันทีว่าดวงไหนติดเมื่อไหร่
  * Date         : 2026-08-15
  ******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
 #include "led_bar.h"
-#include "adc.h"
 #include "stm32f4xx.h"
 
 /* Private includes ------------------------------------------------------------*/
 
 /* Private typedef ------------------------------------------------------------*/
-/* ตารางเก็บว่า LED แต่ละดวงอยู่พอร์ตไหน ขาไหน เรียงจากดวงแรกที่ติดไปดวงสุดท้าย */
-typedef struct
-{
-    GPIO_TypeDef * port;
-    uint8_t pin;
-} led_pin_t;
 
 /* Private define ------------------------------------------------------------*/
-#define NUM_LEDS             (4u)
-
-#define GPIO_MODER_OUTPUT    (0x1u)
-#define GPIO_MODER_MASK      (0x3u)
-#define GPIO_MODER_PIN_BITS  (2u)
 
 /* Private macro ------------------------------------------------------------*/
 
 /* Private constants ------------------------------------------------------------*/
-/* ลำดับการติด: D13(น้ำเงิน) -> D12(แดง) -> D11(เหลือง) -> D10(เขียว) */
-static const led_pin_t led_table[NUM_LEDS] =
-{
-    { GPIOA, 5u },   /* D13 = ดวงแรกที่ติด */
-    { GPIOA, 6u },   /* D12 */
-    { GPIOA, 7u },   /* D11 */
-    { GPIOB, 6u }    /* D10 = ดวงสุดท้ายที่ติด */
-};
 
 /* Private variables ------------------------------------------------------------*/
 
 /* External variables ------------------------------------------------------------*/
 
 /* Private function prototypes ------------------------------------------------*/
-static void set_led_state(uint8_t index, uint8_t state);
 
 /* Private user code ------------------------------------------------------------*/
 
 /* Public functions ------------------------------------------------------------*/
 
 /*
- * ตั้งขา LED ทั้ง 4 ดวงตามตาราง led_table ให้เป็น output ทั้งหมด
+ * ตั้งขา LED ทั้ง 4 ดวงเป็น output ทั้งหมด (เขียนตรง ๆ ทีละขา)
  */
 void led_bar_init(void)
 {
-    uint8_t i;
+    /* PA5 = D13 */
+    GPIOA->MODER &= ~(0x3u << (5u * 2u));
+    GPIOA->MODER |= (0x1u << (5u * 2u));
 
-    for (i = 0u; i < NUM_LEDS; i = i + 1u)
-    {
-        led_table[i].port->MODER &= ~(GPIO_MODER_MASK << (led_table[i].pin * GPIO_MODER_PIN_BITS));
-        led_table[i].port->MODER |= (GPIO_MODER_OUTPUT << (led_table[i].pin * GPIO_MODER_PIN_BITS));
-    }
+    /* PA6 = D12 */
+    GPIOA->MODER &= ~(0x3u << (6u * 2u));
+    GPIOA->MODER |= (0x1u << (6u * 2u));
+
+    /* PA7 = D11 */
+    GPIOA->MODER &= ~(0x3u << (7u * 2u));
+    GPIOA->MODER |= (0x1u << (7u * 2u));
+
+    /* PB6 = D10 */
+    GPIOB->MODER &= ~(0x3u << (6u * 2u));
+    GPIOB->MODER |= (0x1u << (6u * 2u));
 }
 
 /*
  * แปลงค่า ADC (0-4095) เป็นจำนวน LED ที่ต้องติด (0-4 ดวง) แล้วเปิด/ปิด
- * ให้ตรงกับจำนวนนั้น เหตุผล: หาร ADC_MAX_VALUE+1 ออกเป็น NUM_LEDS+1 ช่วง
- * เท่า ๆ กัน ทำให้ค่า ADC=0 ได้ count=0 (ดับหมด) และ ADC=4095 ได้ count=4
- * (ติดหมด) แบบขั้นบันไดเท่า ๆ กันทุกช่วง
+ * LED แต่ละดวงตรง ๆ ทีละดวงตามจำนวนนั้น
+ * เหตุผล: หาร 4096 ออกเป็น 5 ช่วงเท่า ๆ กัน ทำให้ ADC=0 ได้ count=0
+ * (ดับหมด) และ ADC=4095 ได้ count=4 (ติดหมด) แบบขั้นบันไดเท่า ๆ กัน
  */
 void led_bar_update(uint16_t adc_value)
 {
     uint8_t count;
-    uint8_t i;
 
-    count = (uint8_t)(((uint32_t)adc_value * (NUM_LEDS + 1u)) / (ADC_MAX_VALUE + 1u));
+    count = (uint8_t)((adc_value * 5u) / 4096u);
 
-    for (i = 0u; i < NUM_LEDS; i = i + 1u)
+    /* ดวงที่ 1 (D13=PA5) ติดเมื่อ count อย่างน้อย 1 */
+    if (count >= 1u)
     {
-        if (i < count)
-        {
-            set_led_state(i, 1u);
-        }
-        else
-        {
-            set_led_state(i, 0u);
-        }
+        GPIOA->ODR |= (1u << 5u);
+    }
+    else
+    {
+        GPIOA->ODR &= ~(1u << 5u);
+    }
+
+    /* ดวงที่ 2 (D12=PA6) ติดเมื่อ count อย่างน้อย 2 */
+    if (count >= 2u)
+    {
+        GPIOA->ODR |= (1u << 6u);
+    }
+    else
+    {
+        GPIOA->ODR &= ~(1u << 6u);
+    }
+
+    /* ดวงที่ 3 (D11=PA7) ติดเมื่อ count อย่างน้อย 3 */
+    if (count >= 3u)
+    {
+        GPIOA->ODR |= (1u << 7u);
+    }
+    else
+    {
+        GPIOA->ODR &= ~(1u << 7u);
+    }
+
+    /* ดวงที่ 4 (D10=PB6) ติดเมื่อ count ครบ 4 (ติดหมดทุกดวง) */
+    if (count >= 4u)
+    {
+        GPIOB->ODR |= (1u << 6u);
+    }
+    else
+    {
+        GPIOB->ODR &= ~(1u << 6u);
     }
 }
 
 /* Callback functions ------------------------------------------------------------*/
 
 /* Private functions ------------------------------------------------------------*/
-
-/*
- * เปิด/ปิด LED ดวงที่ index (อ้างอิงจาก led_table) ตามค่า state
- */
-static void set_led_state(uint8_t index, uint8_t state)
-{
-    if (state == 1u)
-    {
-        led_table[index].port->ODR |= (1u << led_table[index].pin);
-    }
-    else
-    {
-        led_table[index].port->ODR &= ~(1u << led_table[index].pin);
-    }
-}

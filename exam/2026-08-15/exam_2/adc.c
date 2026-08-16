@@ -14,12 +14,7 @@
 /* Private typedef ------------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define POT_PIN             (0u)    /* PA0 = บอร์ด A0 (potentiometer) */
 #define POT_ADC_CHANNEL     (0u)    /* PA0 -> ADC channel 0 (เลขขา = เลข channel) */
-
-#define GPIO_MODER_ANALOG   (0x3u)
-#define GPIO_MODER_MASK     (0x3u)
-#define GPIO_MODER_PIN_BITS (2u)
 
 /* Private macro ------------------------------------------------------------*/
 
@@ -30,7 +25,6 @@
 /* External variables ------------------------------------------------------------*/
 
 /* Private function prototypes ------------------------------------------------*/
-static void configure_analog_pin(void);
 
 /* Private user code ------------------------------------------------------------*/
 
@@ -38,17 +32,28 @@ static void configure_analog_pin(void);
 
 /*
  * ตั้งขา potentiometer เป็น Analog mode, เลือก channel/sampling time
- * แล้วเปิดการทำงานของ ADC1 ไว้รอเรียกอ่านค่า
+ * แล้วเปิดการทำงานของ ADC1 ไว้รอเรียกอ่านค่า (เขียนทุกขั้นตอนไว้ในฟังก์ชัน
+ * เดียวเรียงตามลำดับที่ทำจริง อ่านจากบนลงล่างได้เลยไม่ต้องกระโดดไปที่อื่น)
  */
 void adc_init(void)
 {
-    configure_analog_pin();
+    /* ตั้งขา PA0 เป็น Analog mode (11) เพื่อให้ ADC อ่านแรงดันจริงจากขานี้ได้ */
+    GPIOA->MODER &= ~(0x3u << (0u * 2u));
+    GPIOA->MODER |= (0x3u << (0u * 2u));
 
-    ADC1->SMPR2 |= ADC_SMPR2_SMP0;              /* channel 0 อยู่ใน SMPR2 */
-    ADC1->SQR1 &= ~ADC_SQR1_L;                  /* L = 0000 คือแปลง 1 channel ใน sequence */
+    /* ตั้ง Sample Time ของ channel 0 ใน SMPR2 (ยิ่งนาน ADC ยิ่งมีเวลาชาร์จ
+     * capacitor ภายในมากขึ้น เหมาะกับแหล่งสัญญาณที่มี impedance สูง) */
+    ADC1->SMPR2 |= ADC_SMPR2_SMP0;
+
+    /* SQR1 บิต L บอกจำนวน channel ที่จะแปลงใน sequence, L=0000 คือ 1 channel */
+    ADC1->SQR1 &= ~ADC_SQR1_L;
+
+    /* SQR3 บอกว่าลำดับที่ 1 ของ sequence จะอ่าน channel ไหน ต้องเคลียร์ก่อน
+     * แล้วค่อยใส่เลข channel ใหม่ ไม่งั้นค่าบิตเก่าจะปนกับค่าที่ตั้งใหม่ */
     ADC1->SQR3 &= ~ADC_SQR3_SQ1;
     ADC1->SQR3 |= (POT_ADC_CHANNEL << ADC_SQR3_SQ1_Pos);
 
+    /* เปิดการทำงานของ ADC */
     ADC1->CR2 |= ADC_CR2_ADON;
 }
 
@@ -72,13 +77,3 @@ uint16_t adc_read(void)
 /* Callback functions ------------------------------------------------------------*/
 
 /* Private functions ------------------------------------------------------------*/
-
-/*
- * ตั้งขา potentiometer เป็น Analog mode (11)
- * เหตุผล: ADC อ่านค่าได้ถูกต้องต้องตั้ง MODER เป็น Analog เท่านั้น
- */
-static void configure_analog_pin(void)
-{
-    GPIOA->MODER &= ~(GPIO_MODER_MASK << (POT_PIN * GPIO_MODER_PIN_BITS));
-    GPIOA->MODER |= (GPIO_MODER_ANALOG << (POT_PIN * GPIO_MODER_PIN_BITS));
-}

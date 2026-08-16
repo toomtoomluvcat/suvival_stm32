@@ -16,13 +16,7 @@
 /* Private typedef ------------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define POT_GPIO_PORT       GPIOA
-#define POT_PIN             (0u)    /* PA0 = บอร์ด A0 (potentiometer) */
 #define POT_ADC_CHANNEL     (0u)    /* PA0 -> ADC channel 0 (เลขขา = เลข channel) */
-
-#define GPIO_MODER_ANALOG   (0x3u)
-#define GPIO_MODER_MASK     (0x3u)
-#define GPIO_MODER_PIN_BITS (2u)
 
 /* Private macro ------------------------------------------------------------*/
 
@@ -37,24 +31,34 @@ static volatile uint8_t data_ready_flag = 0u;
 /* External variables ------------------------------------------------------------*/
 
 /* Private function prototypes ------------------------------------------------*/
-static void configure_analog_pin(void);
-static void configure_adc_channel(void);
 
 /* Private user code ------------------------------------------------------------*/
 
 /* Public functions ------------------------------------------------------------*/
 
 /*
- * ตั้งค่าขา potentiometer เป็น Analog mode, ตั้ง channel/sampling time,
- * เปิด continuous mode + EOC interrupt แล้วเปิด ADC และยิง conversion แรก
+ * ตั้งขา potentiometer, เลือก channel/sampling time, เปิด continuous
+ * mode + EOC interrupt แล้วเปิด ADC และยิง conversion แรก (เขียนทุก
+ * ขั้นตอนไว้ในฟังก์ชันเดียวเรียงตามลำดับที่ทำจริง)
  * เหตุผล: โจทย์บังคับให้ใช้ ADC EOC interrupt (ไม่ใช่ polling) ดังนั้นต้อง
  * เปิด CONT bit ให้ ADC วิ่งแปลงค่าต่อเนื่อง แล้วให้ EOC interrupt ยิง
  * ทุกครั้งที่แปลงเสร็จหนึ่งค่า โดยไม่ต้องมีใครมา SWSTART ซ้ำอีก
  */
 void adc_init(void)
 {
-    configure_analog_pin();
-    configure_adc_channel();
+    /* PA0 = Analog mode (11) */
+    GPIOA->MODER &= ~(0x3u << (0u * 2u));
+    GPIOA->MODER |= (0x3u << (0u * 2u));
+
+    /* channel 0 อยู่ใน SMPR2 */
+    ADC1->SMPR2 |= ADC_SMPR2_SMP0;
+
+    /* L = 0000 คือแปลง 1 channel ใน sequence */
+    ADC1->SQR1 &= ~ADC_SQR1_L;
+
+    /* ลำดับที่ 1 ของ sequence อ่าน channel 0 */
+    ADC1->SQR3 &= ~ADC_SQR3_SQ1;
+    ADC1->SQR3 |= (POT_ADC_CHANNEL << ADC_SQR3_SQ1_Pos);
 
     ADC1->CR1 |= ADC_CR1_EOCIE;      /* เปิด interrupt เมื่อแปลงเสร็จ (EOC) */
     ADC1->CR2 |= ADC_CR2_CONT;       /* continuous conversion: แปลงซ้ำเรื่อย ๆ เอง */
@@ -110,27 +114,3 @@ void ADC_IRQHandler(void)
 }
 
 /* Private functions ------------------------------------------------------------*/
-
-/*
- * ตั้งขา potentiometer เป็น Analog mode (11)
- * เหตุผล: ADC อ่านค่าได้ถูกต้องต้องตั้ง MODER เป็น Analog เท่านั้น
- * ถ้ายังเป็น Input/Output ค่าที่อ่านได้จะไม่ใช่แรงดันจริงจากขา
- */
-static void configure_analog_pin(void)
-{
-    POT_GPIO_PORT->MODER &= ~(GPIO_MODER_MASK << (POT_PIN * GPIO_MODER_PIN_BITS));
-    POT_GPIO_PORT->MODER |= (GPIO_MODER_ANALOG << (POT_PIN * GPIO_MODER_PIN_BITS));
-}
-
-/*
- * ตั้ง sampling time และเลือก channel ที่จะแปลงใน regular sequence
- * เหตุผล: channel ใน SMPRx และ SQR3 ต้องตรงกับขาที่ใช้จริงเป๊ะ (PA0 = channel 0)
- * ไม่งั้น ADC จะไปแปลงค่าจากขาอื่นที่ไม่ใช่ potentiometer
- */
-static void configure_adc_channel(void)
-{
-    ADC1->SMPR2 |= ADC_SMPR2_SMP0;              /* channel 0 อยู่ใน SMPR2 */
-    ADC1->SQR1 &= ~ADC_SQR1_L;                  /* L = 0000 คือแปลง 1 channel ใน sequence */
-    ADC1->SQR3 &= ~ADC_SQR3_SQ1;
-    ADC1->SQR3 |= (POT_ADC_CHANNEL << ADC_SQR3_SQ1_Pos);
-}

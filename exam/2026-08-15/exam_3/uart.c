@@ -16,17 +16,6 @@
 /* Private typedef ------------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define UART_TX_PIN         (2u)   /* PA2 = USART2_TX */
-#define UART_RX_PIN         (3u)   /* PA3 = USART2_RX */
-#define UART_AF_USART2      (0x7u) /* USART2 อยู่บน AF7 */
-
-#define GPIO_MODER_ALT_FUNC (0x2u)
-#define GPIO_MODER_MASK     (0x3u)
-#define GPIO_MODER_PIN_BITS (2u)
-
-#define GPIO_AFR_MASK       (0xFu)
-#define GPIO_AFR_PIN_BITS   (4u)
-
 /* สมมติ clock ระบบเป็นค่า default หลัง reset คือ HSI 16MHz ไม่มี PLL/prescaler
  * ถ้าโปรเจกต์มีการตั้ง SystemClock_Config เปลี่ยนความถี่ ต้องแก้ค่านี้ตาม */
 #define PCLK1_HZ            (16000000u)
@@ -45,20 +34,30 @@
 /* External variables ------------------------------------------------------------*/
 
 /* Private function prototypes ------------------------------------------------*/
-static void configure_uart_pins(void);
 
 /* Private user code ------------------------------------------------------------*/
 
 /* Public functions ------------------------------------------------------------*/
 
 /*
- * ตั้งขา PA2/PA3 เป็น USART2 แล้วตั้ง baud rate, เปิดฝั่งส่ง-รับ-USART
+ * ตั้งขา PA2(TX)/PA3(RX) เป็น USART2, ตั้ง baud rate แล้วเปิดฝั่งส่ง-รับ-USART
+ * เขียนทุกขั้นตอนไว้ในฟังก์ชันเดียวเรียงตามลำดับที่ทำจริง
  * เหตุผล: ต้องเปิดทั้ง TE (ส่ง) และ RE (รับ) เสมอ ถ้าลืม RE จะรับข้อมูล
  * จากผู้ใช้ไม่ได้เลยแม้ว่าส่งออกได้ปกติ
  */
 void uart_init(void)
 {
-    configure_uart_pins();
+    /* PA2 = TX ตั้งเป็น Alternate Function AF7 (USART2) */
+    GPIOA->MODER &= ~(0x3u << (2u * 2u));
+    GPIOA->MODER |= (0x2u << (2u * 2u));
+    GPIOA->AFR[0] &= ~(0xFu << (2u * 4u));
+    GPIOA->AFR[0] |= (0x7u << (2u * 4u));
+
+    /* PA3 = RX ตั้งเป็น Alternate Function AF7 (USART2) */
+    GPIOA->MODER &= ~(0x3u << (3u * 2u));
+    GPIOA->MODER |= (0x2u << (3u * 2u));
+    GPIOA->AFR[0] &= ~(0xFu << (3u * 4u));
+    GPIOA->AFR[0] |= (0x7u << (3u * 4u));
 
     /* BRR = PCLK / baudrate (สูตรอย่างง่าย ใช้ oversampling 16 ค่า default) */
     USART2->BRR = PCLK1_HZ / UART_BAUD_RATE;
@@ -92,6 +91,7 @@ void uart_send_string(const char * str)
     uint32_t i;
 
     i = 0u;
+    /*เพราะในภาษา C String จะมีตัวจบที่เรียกว่า Null Terminator คือ '\0'*/
     while (str[i] != '\0')
     {
         uart_send_char((uint8_t)str[i]);
@@ -151,23 +151,3 @@ uint8_t uart_receive_char(void)
 /* Callback functions ------------------------------------------------------------*/
 
 /* Private functions ------------------------------------------------------------*/
-
-/*
- * ตั้งขา PA2 (TX) และ PA3 (RX) ให้เป็น Alternate Function AF7 (USART2)
- * เหตุผล: ลืมตั้งขาใดขาหนึ่งเป็น AF7 = ขานั้นใช้งานไม่ได้เลย (พบบ่อยที่สุด
- * คือลืม RX แล้วส่งได้แต่รับข้อมูลจากผู้ใช้ไม่ได้)
- */
-static void configure_uart_pins(void)
-{
-    GPIOA->MODER &= ~(GPIO_MODER_MASK << (UART_TX_PIN * GPIO_MODER_PIN_BITS));
-    GPIOA->MODER |= (GPIO_MODER_ALT_FUNC << (UART_TX_PIN * GPIO_MODER_PIN_BITS));
-
-    GPIOA->MODER &= ~(GPIO_MODER_MASK << (UART_RX_PIN * GPIO_MODER_PIN_BITS));
-    GPIOA->MODER |= (GPIO_MODER_ALT_FUNC << (UART_RX_PIN * GPIO_MODER_PIN_BITS));
-
-    GPIOA->AFR[0] &= ~(GPIO_AFR_MASK << (UART_TX_PIN * GPIO_AFR_PIN_BITS));
-    GPIOA->AFR[0] |= (UART_AF_USART2 << (UART_TX_PIN * GPIO_AFR_PIN_BITS));
-
-    GPIOA->AFR[0] &= ~(GPIO_AFR_MASK << (UART_RX_PIN * GPIO_AFR_PIN_BITS));
-    GPIOA->AFR[0] |= (UART_AF_USART2 << (UART_RX_PIN * GPIO_AFR_PIN_BITS));
-}

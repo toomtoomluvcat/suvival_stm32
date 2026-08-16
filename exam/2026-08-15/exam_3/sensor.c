@@ -17,15 +17,8 @@
 /* Private typedef ------------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define TEMP_PIN             (1u)   /* PA1 = A1 = เซนเซอร์อุณหภูมิ */
-#define TEMP_CHANNEL         (1u)
-
-#define LIGHT_PIN            (4u)   /* PA4 = A2 = เซนเซอร์ความสว่าง */
-#define LIGHT_CHANNEL        (4u)
-
-#define GPIO_MODER_ANALOG    (0x3u)
-#define GPIO_MODER_MASK      (0x3u)
-#define GPIO_MODER_PIN_BITS  (2u)
+#define TEMP_CHANNEL         (1u)   /* PA1 = A1 = เซนเซอร์อุณหภูมิ */
+#define LIGHT_CHANNEL        (4u)   /* PA4 = A2 = เซนเซอร์ความสว่าง */
 
 #define ADC_MAX_VALUE        (4095u)
 #define ADC_VREF_MILLIVOLT   (3300u)
@@ -42,7 +35,6 @@
 /* External variables ------------------------------------------------------------*/
 
 /* Private function prototypes ------------------------------------------------*/
-static void configure_analog_pin(uint8_t pin);
 static uint16_t adc_convert_channel(uint8_t channel);
 
 /* Private user code ------------------------------------------------------------*/
@@ -50,13 +42,18 @@ static uint16_t adc_convert_channel(uint8_t channel);
 /* Public functions ------------------------------------------------------------*/
 
 /*
- * ตั้งขาเซนเซอร์ทั้ง 2 เป็น Analog mode, ตั้ง sampling time ให้ทั้ง 2
- * channel แล้วเปิด ADC1 ไว้รอใช้งาน (ยังไม่เริ่มแปลงค่าจนกว่าจะถูกเรียกอ่าน)
+ * ตั้งขาเซนเซอร์ทั้ง 2 เป็น Analog mode (เขียนตรง ๆ ทีละขา), ตั้ง sampling
+ * time ให้ทั้ง 2 channel แล้วเปิด ADC1 ไว้รอใช้งาน
  */
 void sensor_init(void)
 {
-    configure_analog_pin(TEMP_PIN);
-    configure_analog_pin(LIGHT_PIN);
+    /* PA1 = A1 = เซนเซอร์อุณหภูมิ */
+    GPIOA->MODER &= ~(0x3u << (1u * 2u));
+    GPIOA->MODER |= (0x3u << (1u * 2u));
+
+    /* PA4 = A2 = เซนเซอร์ความสว่าง */
+    GPIOA->MODER &= ~(0x3u << (4u * 2u));
+    GPIOA->MODER |= (0x3u << (4u * 2u));
 
     ADC1->SMPR2 |= ADC_SMPR2_SMP1;
     ADC1->SMPR2 |= ADC_SMPR2_SMP4;
@@ -103,21 +100,15 @@ uint32_t sensor_read_light_lux(void)
 /* Private functions ------------------------------------------------------------*/
 
 /*
- * ตั้งขาหนึ่งขาเป็น Analog mode (11) เพื่อให้ ADC อ่านแรงดันจริงจากขานั้นได้
- */
-static void configure_analog_pin(uint8_t pin)
-{
-    GPIOA->MODER &= ~(GPIO_MODER_MASK << (pin * GPIO_MODER_PIN_BITS));
-    GPIOA->MODER |= (GPIO_MODER_ANALOG << (pin * GPIO_MODER_PIN_BITS));
-}
-
-/*
  * เลือก channel ที่ต้องการแปลงค่าใน SQR3 แล้วสั่งเริ่มแปลง รอจน EOC ติด
  * แล้วอ่านค่าออกมา เหตุผลที่เลือก channel ใหม่ทุกครั้ง: ADC1 มีตัวเดียว
  * ต้องใช้ร่วมกันระหว่าง 2 เซนเซอร์ จึงสลับ channel ก่อนแปลงค่าทุกครั้งที่เรียก
+ * (ฟังก์ชันนี้เก็บไว้ตัวเดียวเพราะมี 2 จุดเรียกจริง ๆ (T และ l) ถ้าแยกเป็น
+ * 2 ฟังก์ชันจะซ้ำกันทุกบรรทัดยกเว้นเลข channel)
  */
 static uint16_t adc_convert_channel(uint8_t channel)
 {
+    /*เคลียร์ค่าของ SQ1 ก่อน เพื่อเตรียมกำหนดว่าจะอ่าน Channel ไหน*/
     ADC1->SQR3 &= ~ADC_SQR3_SQ1;
     ADC1->SQR3 |= ((uint32_t)channel << ADC_SQR3_SQ1_Pos);
 
