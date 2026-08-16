@@ -14,7 +14,7 @@
 /* Private typedef ------------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define POT_ADC_CHANNEL     (0u)    /* PA0 -> ADC channel 0 (เลขขา = เลข channel) */
+#define POT_ADC_CHANNEL     (4u)    /* PA0 -> ADC channel 0 (เลขขา = เลข channel) */
 
 /* Private macro ------------------------------------------------------------*/
 
@@ -38,8 +38,8 @@
 void adc_init(void)
 {
     /* ตั้งขา PA0 เป็น Analog mode (11) เพื่อให้ ADC อ่านแรงดันจริงจากขานี้ได้ */
-    GPIOA->MODER &= ~(0x3u << (0u * 2u));
-    GPIOA->MODER |= (0x3u << (0u * 2u));
+    GPIOA->MODER &= ~(0x3u << (4u * 2u));
+    GPIOA->MODER |= (0x3u << (4u * 2u));
 
     /* ตั้ง Sample Time ของ channel 0 ใน SMPR2 (ยิ่งนาน ADC ยิ่งมีเวลาชาร์จ
      * capacitor ภายในมากขึ้น เหมาะกับแหล่งสัญญาณที่มี impedance สูง) */
