@@ -10,6 +10,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "sensor.h"
+#define STM32F411xE         /* บอก CMSIS ว่าใช้ชิปรุ่น STM32F411xE (Nucleo-F411RE) */
 #include "stm32f4xx.h"
 
 /* Private includes ------------------------------------------------------------*/
@@ -17,8 +18,8 @@
 /* Private typedef ------------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define TEMP_CHANNEL         (1u)   /* PA1 = A1 = เซนเซอร์อุณหภูมิ */
-#define LIGHT_CHANNEL        (4u)   /* PA4 = A2 = เซนเซอร์ความสว่าง */
+#define TEMP_CHANNEL         (0u)  /* PA1 = A1 = เซนเซอร์อุณหภูมิ */
+#define LIGHT_CHANNEL        (1u)   /* PA4 = A2 = เซนเซอร์ความสว่าง */
 
 #define ADC_MAX_VALUE        (4095u)
 #define ADC_VREF_MILLIVOLT   (3300u)
@@ -45,20 +46,21 @@ static uint16_t adc_convert_channel(uint8_t channel);
  * ตั้งขาเซนเซอร์ทั้ง 2 เป็น Analog mode (เขียนตรง ๆ ทีละขา), ตั้ง sampling
  * time ให้ทั้ง 2 channel แล้วเปิด ADC1 ไว้รอใช้งาน
  */
+
 void sensor_init(void)
 {
     /* PA1 = A1 = เซนเซอร์อุณหภูมิ */
     GPIOA->MODER &= ~(0x3u << (1u * 2u));
-    GPIOA->MODER |= (0x3u << (1u * 2u));
+    GPIOA->MODER |= (0x3u << (1u * 2u)); /*analog mode*/
 
     /* PA4 = A2 = เซนเซอร์ความสว่าง */
     GPIOA->MODER &= ~(0x3u << (4u * 2u));
-    GPIOA->MODER |= (0x3u << (4u * 2u));
+    GPIOA->MODER |= (0x3u << (4u * 2u)); /*analog mode*/
 
     ADC1->SMPR2 |= ADC_SMPR2_SMP1;
-    ADC1->SMPR2 |= ADC_SMPR2_SMP4;
+    ADC1->SMPR2 |= ADC_SMPR2_SMP4; /*SMPR*/
 
-    ADC1->CR2 |= ADC_CR2_ADON;
+    ADC1->CR2 |= ADC_CR2_ADON; /*เปิดใช้งาน AD CONVERTER ON*/
 }
 
 /*
@@ -66,7 +68,8 @@ void sensor_init(void)
  * เหตุผล: แปลง ADC ดิบ -> แรงดัน(mV) -> องศา ตามสเปก LM35 (10mV ต่อ 1 องศา)
  * ใช้เลขจำนวนเต็มล้วน (คูณก่อนหารเสมอ) เพื่อไม่ให้ผลลัพธ์เพี้ยนจาก integer truncation
  */
-uint32_t sensor_read_temperature_millidegc(void)
+
+ uint32_t sensor_read_temperature_millidegc(void)
 {
     uint16_t adc_raw;
     uint32_t millivolt;
@@ -84,7 +87,8 @@ uint32_t sensor_read_temperature_millidegc(void)
  * เหตุผล: ใช้สูตรเชิงเส้นอย่างง่ายจาก ADC ดิบ เพราะ LDR จริงมีความสัมพันธ์
  * แบบไม่เชิงเส้น แต่โจทย์ต้องการความง่ายในการอธิบาย จึงประมาณแบบเส้นตรง
  */
-uint32_t sensor_read_light_lux(void)
+
+ uint32_t sensor_read_light_lux(void)
 {
     uint16_t adc_raw;
     uint32_t lux;
@@ -112,8 +116,11 @@ static uint16_t adc_convert_channel(uint8_t channel)
     ADC1->SQR3 &= ~ADC_SQR3_SQ1;
     ADC1->SQR3 |= ((uint32_t)channel << ADC_SQR3_SQ1_Pos);
 
+    /*เริ่มแปลงค่า*/
     ADC1->CR2 |= ADC_CR2_SWSTART;
-
+    
+    /*Status Register ของ ADC1*/
+    /*End of conversation*/
     while ((ADC1->SR & ADC_SR_EOC) == 0u)
     {
         /* รอแปลงเสร็จ */

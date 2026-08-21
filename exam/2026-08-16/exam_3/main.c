@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 /* Includes ------------------------------------------------------------------*/
+#define STM32F411xE         /* บอก CMSIS ว่าใช้ชิปรุ่น STM32F411xE (Nucleo-F411RE) */
 #include "stm32f4xx.h"
 #include "uart.h"
 #include "led_control.h"
@@ -16,7 +17,7 @@
 /* Private includes ------------------------------------------------------------*/
 
 /* Private typedef ------------------------------------------------------------*/
-
+ 
 /* Private define ------------------------------------------------------------*/
 #define CMD_LED_OFF   ((uint8_t)'0')
 #define CMD_LED_ON    ((uint8_t)'1')
@@ -86,24 +87,24 @@ static void handle_command(uint8_t command)
     {
         case CMD_LED_OFF:
             led_all_off();
-            uart_send_string("OK");
+            uart_send_string("\nOK");
             break;
 
         case CMD_LED_ON:
             led_all_on();
-            uart_send_string("OK");
+            uart_send_string("\nOK");
             break;
 
         case CMD_TEMP:
-            uart_send_string("Temperature = ");
+            uart_send_string("\nTemperature = ");
             uart_send_number(sensor_read_temperature_millidegc());
-            uart_send_string(" millidegree Celcius\n");
+            uart_send_string("\nmillidegree Celcius\n");
             break;
 
         case CMD_LIGHT:
-            uart_send_string("Light intensity = ");
+            uart_send_string("\nLight intensity = ");
             uart_send_number(sensor_read_light_lux());
-            uart_send_string(" Lux\n");
+            uart_send_string("\nLux\n");
             break;
 
         default:

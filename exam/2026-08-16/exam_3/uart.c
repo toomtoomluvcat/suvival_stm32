@@ -9,6 +9,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "uart.h"
+#define STM32F411xE         /* บอก CMSIS ว่าใช้ชิปรุ่น STM32F411xE (Nucleo-F411RE) */
 #include "stm32f4xx.h"
 
 /* Private includes ------------------------------------------------------------*/
@@ -18,7 +19,7 @@
 /* Private define ------------------------------------------------------------*/
 /* สมมติ clock ระบบเป็นค่า default หลัง reset คือ HSI 16MHz ไม่มี PLL/prescaler
  * ถ้าโปรเจกต์มีการตั้ง SystemClock_Config เปลี่ยนความถี่ ต้องแก้ค่านี้ตาม */
-#define PCLK1_HZ            (16000000u)
+#define PCLK1_HZ            (16000000u) /*16MHZ ของบอร์ด*/
 #define UART_BAUD_RATE      (9600u)
 
 #define ASCII_DIGIT_ZERO    (48u)  /* รหัส ASCII ของตัวอักษร '0' */
@@ -45,7 +46,7 @@
  * เหตุผล: ต้องเปิดทั้ง TE (ส่ง) และ RE (รับ) เสมอ ถ้าลืม RE จะรับข้อมูล
  * จากผู้ใช้ไม่ได้เลยแม้ว่าส่งออกได้ปกติ
  */
-void uart_init(void)
+ void uart_init(void)
 {
     /* PA2 = TX ตั้งเป็น Alternate Function AF7 (USART2) */
     GPIOA->MODER &= ~(0x3u << (2u * 2u));
@@ -62,9 +63,9 @@ void uart_init(void)
     /* BRR = PCLK / baudrate (สูตรอย่างง่าย ใช้ oversampling 16 ค่า default) */
     USART2->BRR = PCLK1_HZ / UART_BAUD_RATE;
 
-    USART2->CR1 |= USART_CR1_TE;
-    USART2->CR1 |= USART_CR1_RE;
-    USART2->CR1 |= USART_CR1_UE;
+    USART2->CR1 |= USART_CR1_TE; /*เปิดฝั่งส่ง*/
+    USART2->CR1 |= USART_CR1_RE; /*เปิดฝั่งรั */
+    USART2->CR1 |= USART_CR1_UE; /*เปิด uart*/
 }
 
 /*
@@ -86,6 +87,7 @@ void uart_send_char(uint8_t data)
  * เหตุผล: ใช้ char ปกติแทน uint8_t เพราะ string literal ใน C เป็น char
  * โดยธรรมชาติ ทำให้เรียกใช้ตรง ๆ ได้ เช่น uart_send_string("LED OFF")
  */
+
 void uart_send_string(const char * str)
 {
     uint32_t i;
@@ -104,6 +106,7 @@ void uart_send_string(const char * str)
  * เหตุผล: โจทย์ห้ามใช้ sprintf จึงต้องแตกหลักเองด้วยการหาร/มอด 10 ไปเรื่อย ๆ
  * ซึ่งจะได้หลักหน่วยออกมาก่อน จึงต้องเก็บใส่ buffer แล้วพิมพ์ย้อนกลับ
  */
+
 void uart_send_number(uint32_t number)
 {
     uint8_t digit_buffer[MAX_DIGIT_COUNT];
@@ -122,8 +125,8 @@ void uart_send_number(uint32_t number)
         while (remaining > 0u)
         {
             digit_buffer[digit_count] = (uint8_t)((remaining % DECIMAL_BASE) + ASCII_DIGIT_ZERO);
-            remaining = remaining / DECIMAL_BASE;
-            digit_count = digit_count + 1u;
+            remaining = remaining / DECIMAL_BASE; /*ตัดหลักที่ใช้ไปแล้วออก*/
+            digit_count = digit_count + 1u; /*ไปยัง address ตัวถัดไป*/
         }
 
         while (digit_count > 0u)
@@ -141,9 +144,16 @@ void uart_send_number(uint32_t number)
  */
 uint8_t uart_receive_char(void)
 {
-    while ((USART2->SR & USART_SR_RXNE) == 0u)
+    while ((USART2->SR & USART_SR_RXNE) == 0u) {
+    /*	Status Register —
+     รีจิสเตอร์ที่เก็บสถานะ/flag ต่างๆ ของ USART2*
+
+     Receive Not Empty — ความหมายคือ "มีข้อมูลใหม่รอให้อ่านอยู่หรือไม่"
+     /
     {
-        /* รอจนกว่าจะมีข้อมูลเข้ามา */
+        /* รอจนกว่าจะมีข้อมูลเข้ามา
+        
+        */
     }
     return (uint8_t)USART2->DR;
 }

@@ -7,6 +7,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "seven_seg.h"
+#define STM32F411xE         /* บอก CMSIS ว่าใช้ชิปรุ่น STM32F411xE (Nucleo-F411RE) */
 #include "stm32f4xx.h"
 
 /* Private includes ------------------------------------------------------------*/

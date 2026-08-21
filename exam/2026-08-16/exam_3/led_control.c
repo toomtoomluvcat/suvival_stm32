@@ -7,6 +7,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "led_control.h"
+#define STM32F411xE         /* บอก CMSIS ว่าใช้ชิปรุ่น STM32F411xE (Nucleo-F411RE) */
 #include "stm32f4xx.h"
 
 /* Private includes ------------------------------------------------------------*/
@@ -41,7 +42,8 @@
  * เหตุผล: ต้องตั้ง mode เป็น output ก่อนเขียน ODR เสมอ ไม่งั้นขายังเป็น
  * input (ค่า reset) แล้วเขียน ODR จะไม่มีผลอะไรกับ LED จริงเลย
  */
-void led_control_init(void)
+
+ void led_control_init(void)
 {
     GPIOA->MODER &= ~(GPIO_MODER_MASK << (LED_BLUE_PIN * GPIO_MODER_PIN_BITS));
     GPIOA->MODER |= (GPIO_MODER_OUTPUT << (LED_BLUE_PIN * GPIO_MODER_PIN_BITS));
